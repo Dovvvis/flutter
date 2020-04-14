@@ -66,9 +66,9 @@ final DecorationTween _kGradientShadowTween = DecorationTween(
       // Eyeballed gradient used to mimic a drop shadow on the start side only.
       colors: <Color>[
         Color(0x00000000),
-        Color(0x04000000),
-        Color(0x12000000),
-        Color(0x38000000),
+        Color(0x00000000),
+        Color(0x00000000),
+        Color(0x00000000),
       ],
       stops: <double>[0.0, 0.3, 0.6, 1.0],
     ),
