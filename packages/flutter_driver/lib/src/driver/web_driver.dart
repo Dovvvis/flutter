@@ -31,7 +31,7 @@ class WebFlutterDriver extends FlutterDriver {
   final FlutterWebConnection _connection;
   DateTime _startTime;
 
-  /// Start time for tracing
+  /// Start time for tracing.
   @visibleForTesting
   DateTime get startTime => _startTime;
 
@@ -152,9 +152,9 @@ class WebFlutterDriver extends FlutterDriver {
     _startTime = DateTime.now();
   }
 
-  /// Checks whether browser supports Timeline related operations
+  /// Checks whether browser supports Timeline related operations.
   void _checkBrowserSupportsTimeline() {
-    if (_connection.supportsTimelineAction) {
+    if (!_connection.supportsTimelineAction) {
       throw UnsupportedError('Timeline action is not supported by current testing browser');
     }
   }
@@ -163,23 +163,13 @@ class WebFlutterDriver extends FlutterDriver {
 /// Encapsulates connection information to an instance of a Flutter Web application.
 class FlutterWebConnection {
   /// Creates a FlutterWebConnection with WebDriver
-  /// and whether the WebDriver supports timeline action
-  FlutterWebConnection(this._driver, this._supportsTimelineAction);
+  /// and whether the WebDriver supports timeline action.
+  FlutterWebConnection(this._driver, this.supportsTimelineAction);
 
   final async_io.WebDriver _driver;
 
-
-  bool _supportsTimelineAction;
-  /// Whether the connected WebDriver supports timeline action for Flutter Web Driver
-  // ignore: unnecessary_getters_setters
-  bool get supportsTimelineAction => _supportsTimelineAction;
-
-  /// Setter for _supportsTimelineAction
-  @visibleForTesting
-  // ignore: unnecessary_getters_setters
-  set supportsTimelineAction(bool value) {
-    _supportsTimelineAction = value;
-  }
+  /// Whether the connected WebDriver supports timeline action for Flutter Web Driver.
+  bool supportsTimelineAction;
 
   /// Starts WebDriver with the given [settings] and
   /// establishes the connection to Flutter Web application.
@@ -206,7 +196,7 @@ class FlutterWebConnection {
     return FlutterWebConnection(driver, settings['support-timeline-action'] as bool);
   }
 
-  /// Sends command via WebDriver to Flutter web application
+  /// Sends command via WebDriver to Flutter web application.
   Future<dynamic> sendCommand(String script, Duration duration) async {
     dynamic result;
     try {

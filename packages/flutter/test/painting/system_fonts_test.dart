@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
@@ -194,11 +196,9 @@ void main() {
       SystemChannels.system.codec.encodeMessage(data),
         (ByteData data) { },
     );
-     final RenderObject renderObject = tester.renderObject(find.byType(Slider));
-
-     bool sliderBoxNeedsLayout;
-     renderObject.visitChildren((RenderObject child) {sliderBoxNeedsLayout = child.debugNeedsLayout;});
-     expect(sliderBoxNeedsLayout, isTrue);
+    // _RenderSlider is the last render object in the tree.
+    final RenderObject renderObject = tester.allRenderObjects.last;
+    expect(renderObject.debugNeedsLayout, isTrue);
   });
 
   testWidgets('TimePicker relayout upon system fonts changes', (WidgetTester tester) async {
@@ -208,7 +208,7 @@ void main() {
           child: Center(
             child: Builder(
               builder: (BuildContext context) {
-                return RaisedButton(
+                return ElevatedButton(
                   child: const Text('X'),
                   onPressed: () {
                     showTimePicker(

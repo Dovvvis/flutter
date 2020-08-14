@@ -10,6 +10,7 @@ import 'package:path/path.dart' as path;
 import 'package:vm_service_client/vm_service_client.dart';
 
 import 'package:flutter_devicelab/framework/utils.dart';
+import 'package:flutter_devicelab/framework/adb.dart' show DeviceIdEnvName;
 
 /// Runs a task in a separate Dart VM and collects the result using the VM
 /// service protocol.
@@ -24,35 +25,36 @@ Future<Map<String, dynamic>> runTask(
   bool silent = false,
   String localEngine,
   String localEngineSrcPath,
+  String deviceId,
 }) async {
   final String taskExecutable = 'bin/tasks/$taskName.dart';
 
   if (!file(taskExecutable).existsSync())
     throw 'Executable Dart file not found: $taskExecutable';
 
-  final Process runner = await startProcess(dartBin, <String>[
-    '--enable-vm-service=0', // zero causes the system to choose a free port
-    '--no-pause-isolates-on-exit',
-    if (localEngine != null) '-DlocalEngine=$localEngine',
-    if (localEngineSrcPath != null) '-DlocalEngineSrcPath=$localEngineSrcPath',
-    taskExecutable,
-  ]);
+  final Process runner = await startProcess(
+    dartBin,
+    <String>[
+      '--disable-dart-dev',
+      '--enable-vm-service=0', // zero causes the system to choose a free port
+      '--no-pause-isolates-on-exit',
+      if (localEngine != null) '-DlocalEngine=$localEngine',
+      if (localEngineSrcPath != null) '-DlocalEngineSrcPath=$localEngineSrcPath',
+      taskExecutable,
+    ],
+    environment: <String, String>{
+      if (deviceId != null)
+        DeviceIdEnvName: deviceId,
+    },
+  );
 
   bool runnerFinished = false;
 
-  final Completer<Uri> uri = Completer<Uri>();
-
   runner.exitCode.whenComplete(() {
-    if (!uri.isCompleted) {
-      // The runner process exited prematurely.
-      uri.completeError(Exception(
-        'The task runner process exited before opening a VM service connection. '
-        'A common cause for this is when a task script does not actually create '
-        'a task.',
-      ));
-    }
     runnerFinished = true;
   });
+
+  final Completer<Uri> uri = Completer<Uri>();
 
   final StreamSubscription<String> stdoutSub = runner.stdout
       .transform<String>(const Utf8Decoder())
@@ -76,7 +78,7 @@ Future<Map<String, dynamic>> runTask(
   });
 
   try {
-    final VMIsolateRef isolate = await _connectToRunnerIsolate(await uri.future, () => !runnerFinished);
+    final VMIsolateRef isolate = await _connectToRunnerIsolate(await uri.future);
     final Map<String, dynamic> taskResult = await isolate.invokeExtension('ext.cocoonRunTask') as Map<String, dynamic>;
     await runner.exitCode;
     return taskResult;
@@ -89,7 +91,7 @@ Future<Map<String, dynamic>> runTask(
   }
 }
 
-Future<VMIsolateRef> _connectToRunnerIsolate(Uri vmServiceUri, bool Function() keepTrying) async {
+Future<VMIsolateRef> _connectToRunnerIsolate(Uri vmServiceUri) async {
   final List<String> pathSegments = <String>[
     // Add authentication code.
     if (vmServiceUri.pathSegments.isNotEmpty) vmServiceUri.pathSegments[0],
@@ -99,7 +101,7 @@ Future<VMIsolateRef> _connectToRunnerIsolate(Uri vmServiceUri, bool Function() k
       pathSegments).toString();
   final Stopwatch stopwatch = Stopwatch()..start();
 
-  while (keepTrying()) {
+  while (true) {
     try {
       // Make sure VM server is up by successfully opening and closing a socket.
       await (await WebSocket.connect(url)).close();
@@ -118,8 +120,6 @@ Future<VMIsolateRef> _connectToRunnerIsolate(Uri vmServiceUri, bool Function() k
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
   }
-
-  throw Exception('Failed to connect to Dart VM service.');
 }
 
 Future<void> cleanupSystem() async {

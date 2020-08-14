@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
@@ -262,7 +264,7 @@ void main() {
     expect(find.text('501'), findsOneWidget);
     // Test that it fits:
     expect(tester.getTopRight(find.text('501')).dx, greaterThanOrEqualTo(tester.getTopRight(find.text('Rows per page:')).dx + 40.0));
-  }, skip: isBrowser);  // TODO(yjbanov): https://github.com/flutter/flutter/issues/43433
+  }, skip: isBrowser);  // https://github.com/flutter/flutter/issues/43433
 
   testWidgets('PaginatedDataTable footer scrolls', (WidgetTester tester) async {
     final TestDataSource source = TestDataSource();

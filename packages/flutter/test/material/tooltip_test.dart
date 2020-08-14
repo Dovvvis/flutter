@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -149,7 +151,7 @@ void main() {
     );
     expect(tip.size.height, equals(24.0)); // 14.0 height + 5.0 padding * 2 (top, bottom)
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)), equals(const Offset(10.0, 20.0)));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Does tooltip end up in the right place - center prefer above fits', (WidgetTester tester) async {
     final GlobalKey key = GlobalKey();
@@ -384,7 +386,7 @@ void main() {
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(310.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dx, equals(790.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(324.0));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Does tooltip end up in the right place - near the edge', (WidgetTester tester) async {
     final GlobalKey key = GlobalKey();
@@ -441,7 +443,7 @@ void main() {
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(310.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dx, equals(790.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(324.0));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Custom tooltip margin', (WidgetTester tester) async {
     const double _customMarginValue = 10.0;
@@ -677,7 +679,7 @@ void main() {
       rrect: RRect.fromRectAndRadius(tip.paintBounds, const Radius.circular(4.0)),
       color: const Color(0xe6616161),
     ));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Can tooltip decoration be customized', (WidgetTester tester) async {
     final GlobalKey key = GlobalKey();
@@ -718,7 +720,7 @@ void main() {
     expect(tip, paints..path(
       color: const Color(0x80800000),
     ));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Tooltip stays after long press', (WidgetTester tester) async {
     await tester.pumpWidget(
@@ -817,6 +819,53 @@ void main() {
     await gesture.removePointer();
     gesture = null;
     expect(find.text(tooltipText), findsNothing);
+  });
+
+  testWidgets('Tooltip does not attempt to show after unmount', (WidgetTester tester) async {
+    // Regression test for https://github.com/flutter/flutter/issues/54096.
+    const Duration waitDuration = Duration(seconds: 1);
+    final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(() async {
+      if (gesture != null)
+        return gesture.removePointer();
+    });
+    await gesture.addPointer();
+    await gesture.moveTo(const Offset(1.0, 1.0));
+    await tester.pump();
+    await gesture.moveTo(Offset.zero);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: Tooltip(
+            message: tooltipText,
+            waitDuration: waitDuration,
+            child: SizedBox(
+              width: 100.0,
+              height: 100.0,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final Finder tooltip = find.byType(Tooltip);
+    await gesture.moveTo(Offset.zero);
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(tooltip));
+    await tester.pump();
+
+    // Pump another random widget to unmount the Tooltip widget.
+    await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: SizedBox(),
+        ),
+      ),
+    );
+
+    // If the issue regresses, an exception will be thrown while we are waiting.
+    await tester.pump(waitDuration);
   });
 
   testWidgets('Does tooltip contribute semantics', (WidgetTester tester) async {
@@ -946,7 +995,7 @@ void main() {
       _findTooltipContainer(tooltipText),
     );
     expect(tip.size.height, equals(56.0));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Haptic feedback', (WidgetTester tester) async {
     final FeedbackTester feedback = FeedbackTester();
@@ -991,11 +1040,15 @@ void main() {
         TestSemantics.rootChild(
           children: <TestSemantics>[
             TestSemantics(
-              flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
               children: <TestSemantics>[
                 TestSemantics(
-                  label: 'Foo\nBar',
-                  textDirection: TextDirection.ltr,
+                  flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                  children: <TestSemantics>[
+                    TestSemantics(
+                      label: 'Foo\nBar',
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1027,11 +1080,15 @@ void main() {
         TestSemantics.rootChild(
           children: <TestSemantics>[
             TestSemantics(
-              flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
               children: <TestSemantics>[
                 TestSemantics(
-                  label: 'Bar',
-                  textDirection: TextDirection.ltr,
+                  flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                  children: <TestSemantics>[
+                    TestSemantics(
+                      label: 'Bar',
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ],
                 ),
               ],
             ),
